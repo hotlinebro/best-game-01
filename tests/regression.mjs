@@ -24,6 +24,42 @@ for (let i = 0; i < 20000 && !loss.state.dead; i++) loss.step(dt);
 assert(loss.state.dead, 'An undefended well loses');
 loss.reset(); assert.equal(loss.state.integrity, 10); assert(!loss.state.dead);
 
+// Every wave grows in count and speed, with progressively shorter spawn gaps.
+let previousSpeed = 0, previousCount = 0, previousInterval = Infinity;
+for (let wave = 1; wave <= 8; wave++) {
+  const game = createWorld();
+  Object.assign(game.state, { wave: wave - 1, countdown: 0 });
+  game.step(0);
+  const boss = game.state.moths.find(q => q.boss);
+  assert.equal(Boolean(boss), wave === 7);
+  assert.equal(game.state.total, 10 + wave * 4 + (wave === 7 ? 1 : 0));
+  assert.equal(game.state.toSpawn + game.state.moths.length, game.state.total);
+  if (boss) {
+    assert.equal(boss.maxHp, 51.5);
+    assert.equal(boss.speed, 30);
+    assert(game.state.notice.includes('BOSS INCOMING'));
+    game.step(game.state.spawn);
+  }
+  const normal = game.state.moths.find(q => !q.boss);
+  assert(normal.speed > previousSpeed);
+  assert(game.state.total > previousCount);
+  assert(game.state.spawn < previousInterval);
+  previousSpeed = normal.speed; previousCount = game.state.total; previousInterval = game.state.spawn;
+  if (boss) {
+    Object.assign(boss, { x: 780, y: 360, hp: 1 });
+    game.step(0, { click: true, x: 760, y: 360 });
+    assert.equal(game.state.score, 100);
+    assert.equal(game.state.motes, 125); // 90 + 25 - 30 + 40
+    assert(game.state.texts.some(t => t.label === '+BOSS DOWN'));
+    assert(!game.state.moths.includes(boss));
+    game.reset();
+    Object.assign(game.state, { wave: 6, countdown: 0 }); game.step(0);
+    const breach = game.state.moths.find(q => q.boss);
+    Object.assign(breach, { x: 640, y: 360 }); game.step(0);
+    assert.equal(game.state.integrity, 7);
+  }
+}
+
 // Legal economy and placement, deterministic spawns; no health or resource cheats.
 const originalRandom = Math.random;
 for (let seed = 1; seed <= 5; seed++) {
@@ -77,15 +113,18 @@ key('KeyR'); frames(1); assert(labels.some(t => t.includes('MOTES 90')));
 frames(5000); assert(labels.includes('THE HOLLOW FADES'));
 key('Space'); frames(1); assert(!labels.includes('THE HOLLOW FADES'));
 key('KeyR'); frames(1); click(760, 360); frames(1); click(580, 464); frames(1); click(580, 256); frames(1);
-let turn = 0;
+let turn = 0, sawBossWave = false, sawBossDown = false;
 for (let i = 0; i < 4000 && !labels.includes('MOONWELL SAVED'); i++) {
   frames(6, 100);
+  sawBossWave ||= labels.some(t => t.includes('BOSS INCOMING'));
+  sawBossDown ||= labels.includes('+BOSS DOWN');
   const hud = labels.find(t => t.startsWith('WAVE '));
   if (Number(hud?.match(/MOTES (\d+)/)?.[1]) >= 35) {
     key('Digit2'); const [x, y] = [[760, 360], [580, 464], [580, 256]][turn++ % 3]; click(x, y);
   }
 }
 assert(labels.includes('MOONWELL SAVED'), 'Actual frame path reaches win');
+assert(sawBossWave && sawBossDown, 'Actual frame path announces and defeats the wave 7 boss');
 click(640, 500); frames(1); assert(!labels.includes('MOONWELL SAVED'));
 assert(labels.some(t => t.includes('MOTES 90')), 'Restart click is not a build click');
 

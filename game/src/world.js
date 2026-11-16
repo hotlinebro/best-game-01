@@ -38,23 +38,28 @@ export function createWorld(sound = () => {}) {
     if (!s.active) {
       s.countdown -= dt;
       if (s.countdown <= 0 && s.wave < 8) {
-        s.wave++; s.active = true; s.total = s.toSpawn = 7 + s.wave * 3;
-        s.spawn = 0; s.motes += 25; s.notice = `Wave ${s.wave} • +25 motes`; play('wave');
+        s.wave++; s.active = true;
+        s.total = s.toSpawn = 10 + s.wave * 4 + (s.wave % 7 === 0 ? 1 : 0);
+        s.spawn = 0; s.motes += 25;
+        s.notice = s.wave % 7 === 0 ? `WAVE ${s.wave} — BOSS INCOMING • +25 motes` : `Wave ${s.wave} • +25 motes`;
+        play('wave');
       }
     }
     if (s.active && s.toSpawn > 0) {
       s.spawn -= dt;
       if (s.spawn <= 0) {
-        s.spawn = Math.max(.45, 1.1 - s.wave * .07); s.toSpawn--;
+        const boss = s.wave % 7 === 0 && s.toSpawn === s.total;
+        s.spawn = Math.max(.24, 1.0 - s.wave * .08); s.toSpawn--;
         const edge = Math.floor(Math.random() * 4);
         const x = edge < 2 ? Math.random() * 1280 : (edge === 2 ? 0 : 1280);
         const y = edge < 2 ? (edge ? 720 : 0) : Math.random() * 720;
-        s.moths.push({ x, y, hp: 2 + s.wave * .45, speed: 22 + s.wave * 3, phase: Math.random() * 7 });
+        const hp = (2 + s.wave * .45) * (boss ? 10 : 1);
+        s.moths.push({ x, y, hp, maxHp: hp, speed: boss ? 30 : Math.min(66, 26 + s.wave * 5), phase: Math.random() * 7, boss });
       }
     }
     for (const q of s.moths) {
       const dx = 640 - q.x, dy = 360 - q.y, d = Math.hypot(dx, dy);
-      if (d <= 48) { q.dead = true; s.integrity = Math.max(0, s.integrity - 1); s.flash = 1; play('hit'); }
+      if (d <= 48) { q.dead = true; s.integrity = Math.max(0, s.integrity - (q.boss ? 3 : 1)); s.flash = 1; play('hit'); }
       else { q.x += dx / d * q.speed * dt; q.y += dy / d * q.speed * dt; }
     }
     for (const b of s.beacons) {
@@ -64,8 +69,8 @@ export function createWorld(sound = () => {}) {
         b.cool = .35; q.hp -= b.level; play('shoot');
         s.shots.push({ x: b.x, y: b.y, tx: q.x, ty: q.y, life: .13 });
         if (q.hp <= 0) {
-          q.dead = true; s.score += 12; s.motes += 6; play('kill');
-          s.texts.push({ x: q.x, y: q.y, life: 1 });
+          q.dead = true; s.score += q.boss ? 100 : 12; s.motes += q.boss ? 40 : 6; play('kill');
+          s.texts.push({ x: q.x, y: q.y, life: 1, label: q.boss ? '+BOSS DOWN' : '+6' });
           for (let i = 0; i < 9; i++) {
             const angle = Math.random() * Math.PI * 2, speed = 20 + Math.random() * 65;
             s.particles.push({ x: q.x, y: q.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: .65 });
