@@ -1,4 +1,4 @@
-// Lumenhollow submission entrypoint (Node 22).
+// TORCHDEEP submission entrypoint (Node 22).
 // Hand in game/ and screenshots/ alongside the vendored buildDossier summary.
 // Output goes to /output, or MAKEFUN_OUTPUT_DIR when building locally.
 

@@ -1,48 +1,96 @@
-// Optional synthesized feedback: failures must never interrupt play.
-export function createAudio() {
-  let context, master, muted = false;
-  const last = {};
-  function unlock() {
-    try {
-      const Context = globalThis.AudioContext || globalThis.webkitAudioContext;
-      if (!context && Context) {
-        context = new Context(); master = context.createGain();
-        master.gain.value = muted ? 0 : .22; master.connect(context.destination);
-      }
-      if (context?.state === 'suspended') context.resume().catch(() => {});
-    } catch { /* Silent fallback. */ }
-  }
-  function tone(frequency, end, duration, delay = 0, type = 'sine') {
-    const at = context.currentTime + delay;
-    const oscillator = context.createOscillator(), gain = context.createGain();
-    oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, at);
-    oscillator.frequency.exponentialRampToValueAtTime(end, at + duration);
-    gain.gain.setValueAtTime(.001, at);
-    gain.gain.exponentialRampToValueAtTime(.5, at + .012);
-    gain.gain.exponentialRampToValueAtTime(.001, at + duration);
-    oscillator.connect(gain); gain.connect(master);
-    oscillator.onended = () => {
-      try { oscillator.disconnect(); gain.disconnect(); } catch { /* Optional cleanup. */ }
-    };
-    oscillator.start(at); oscillator.stop(at + duration + .02);
-  }
-  function play(name) {
-    try {
-      if (!context || context.state !== 'running' || muted) return;
-      const now = context.currentTime;
-      if (now - (last[name] ?? -100) < .055) return;
-      last[name] = now;
-      if (name === 'shoot' || name === 'hit') tone(540, 260, .07);
-      if (name === 'kill') tone(850, 170, .19);
-      if (name === 'place') tone(190, 65, .14, 0, 'triangle');
-      if (name === 'upgrade') { tone(440, 440, .15); tone(660, 660, .24, .12); }
-      if (name === 'wave') tone(65, 150, .65, 0, 'triangle');
-      if (name === 'win') [262, 330, 392, 524].forEach((f, i) => tone(f, f, .45, i * .16));
-      if (name === 'lose') [180, 135, 80].forEach((f, i) => tone(f, f / 2, .45, i * .2));
-    } catch { /* Audio must never break the game loop. */ }
-  }
-  return { unlock, play, get muted() { return muted; }, toggle() {
-    muted = !muted;
-    try { if (master) master.gain.value = muted ? 0 : .22; } catch { /* Optional. */ }
-  } };
+// TORCHDEEP — audio.js
+// Tiny synthesized sound effects (Web Audio, no audio files).
+// The AudioContext starts lazily on the first user gesture; every call is
+// wrapped so a missing or blocked audio device can never crash the game.
+
+let ctx = null;
+let muted = false;
+
+export function isMuted() {
+  return muted;
 }
+
+export function toggleMute() {
+  muted = !muted;
+  return muted;
+}
+
+function audio() {
+  if (muted) return null;
+  try {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+    }
+    if (ctx.state === 'suspended') void ctx.resume();
+    return ctx;
+  } catch (e) {
+    return null;
+  }
+}
+
+function tone(freq, dur, type = 'sine', vol = 0.16, slideTo = null, delay = 0) {
+  const ac = audio();
+  if (!ac) return;
+  try {
+    const t0 = ac.currentTime + delay;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), t0 + dur);
+    gain.gain.setValueAtTime(vol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  } catch (e) {
+    // Sound is decoration; never let it break the game.
+  }
+}
+
+function noise(dur, vol = 0.12, delay = 0) {
+  const ac = audio();
+  if (!ac) return;
+  try {
+    const t0 = ac.currentTime + delay;
+    const len = Math.max(1, Math.floor(ac.sampleRate * dur));
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(vol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    src.connect(gain);
+    gain.connect(ac.destination);
+    src.start(t0);
+  } catch (e) {
+    // Ignore.
+  }
+}
+
+// One named effect per game event. Keep them short and distinct.
+export const sfx = {
+  step() { tone(180, 0.05, 'triangle', 0.05); },
+  swing() { noise(0.12, 0.14); tone(320, 0.1, 'sawtooth', 0.06, 140); },
+  hit() { noise(0.15, 0.18); tone(140, 0.14, 'square', 0.1, 60); },
+  hurt() { tone(220, 0.2, 'sawtooth', 0.12, 90); },
+  skill() { tone(520, 0.12, 'sine', 0.14, 1040); tone(780, 0.16, 'sine', 0.1, 1560, 0.08); },
+  potion() { tone(440, 0.1, 'sine', 0.12, 660); tone(660, 0.14, 'sine', 0.12, 880, 0.1); },
+  coin() { tone(880, 0.08, 'sine', 0.1); tone(1320, 0.12, 'sine', 0.1, null, 0.07); },
+  levelUp() {
+    [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, 'sine', 0.13, null, i * 0.09));
+  },
+  stairs() { tone(392, 0.14, 'sine', 0.12); tone(523, 0.2, 'sine', 0.12, null, 0.12); },
+  victory() {
+    [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.28, 'triangle', 0.14, null, i * 0.13));
+  },
+  defeat() {
+    [392, 330, 262, 196].forEach((f, i) => tone(f, 0.32, 'sawtooth', 0.1, null, i * 0.16));
+  },
+  click() { tone(660, 0.05, 'sine', 0.08); },
+};
