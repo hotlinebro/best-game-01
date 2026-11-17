@@ -1,29 +1,27 @@
-# BAMBOO RUN
+# MEOW RUN
+A little cat. A big adventure.
 
-Run, hop and stomp through the bamboo garden. Pip is a little green sprout on an original three-garden platforming adventure: Firefly Footpath, Amber Canopy, and Moonrise Grove. Reach each bamboo flag; finish garden three to win. Three lives, 120 seconds per garden. Pits and unprotected enemy contact cost a life and restart the current garden; zero lives or a depleted timer ends the run.
+Milo is an original orange tabby on a three-level side-scrolling adventure: Alley Dash (back alley at dusk), Garden Prowl and Rooftop Night. Reach the cat flap home and food bowl in each level to win. Three lives, 120 seconds per level. Gaps and unprotected enemy contact cost a life and restart the level; zero lives or an expired timer ends the run.
 
 ## Feel and rules
+The proven terrain layouts are unchanged: 48px tiles, responsive 1280×720 canvas, fixed 120Hz simulation, acceleration and braking, smooth camera, 100ms coyote time and jump buffering. Hold jump for a full leap, release for a shorter hop.
 
-48px tiles on a responsive 1280×720 canvas. Fixed 120Hz simulation, acceleration and braking, smooth camera, 100ms coyote time and jump buffering. Holding jump gives a full leap; releasing cuts upward velocity. Later gardens introduce wider gaps and more hazards, with safe landing areas.
+Fish award +10, pouncing on grey mice +50, catnip +25, and level completion awards remaining displayed seconds ×10. Brown dogs cannot be pounced on. Catnip grows Milo; one hit shrinks him with 1.6 seconds of protection. Big Milo breaks cardboard boxes from below. Growth waits under a low ceiling. Death resets level objects and timer, preserving score and fish.
 
-Sun drops award 10 points, beetle stomps 50, and sun berries 25. Completing a garden awards remaining displayed seconds ×10. Berries grow Pip: one hit shrinks him, followed by 1.6 seconds of protection. Big Pip breaks bamboo blocks with his head. Beetles patrol and can be stomped from above; spiky burrs cannot. Death resets the current garden's objects and timer while preserving accumulated score and sun drops.
-
-Stand on a bamboo tube and press Down to visit the Sun Drop Sanctuary. Its tube returns Pip to the same garden and position, retaining size and collectibles. The level timer continues in the sanctuary. Growth under a low ceiling waits until there is room.
+Stand on a cardboard cat flap and press Down to enter Fish Feast. Down on its flap returns Milo to his saved position with size and fish retained. The timer continues in the bonus room.
 
 ## Controls and presentation
+Arrows/A/D move; Space/W/Up jump; Down/S enters flaps; P pauses, R restarts, M mutes. Enter/Space/click starts or continues. Touch buttons offer left, right, down and jump. Keyboard opposing directions retain their original cancellation behavior.
 
-Left/Right or A/D move; Space, W or Up jump; Down enters tubes; P pauses; R restarts the whole run; M toggles sound. Enter, Space or click starts, continues, or restarts from an intermission screen. HTML pointer controls support simultaneous movement and jumping, plus tube, pause and sound buttons. Blur pauses the game and clears held inputs.
+Touch holds track pointer IDs and press order, with the most recent opposing direction winning. Buttons never request capture; implicit browser capture is released. Pointer-enter while pressed supports sliding; pointer-up, cancel, leave and lost capture release holds. Window up/cancel provides a safety net, with stray releases clearing all touch holds. Blur and hidden-page transitions clear input and pause. Jump/down remain edge-triggered.
 
-The HUD shows garden, lives, sun drops, score, timer, progress and contextual guidance. Title, pause, garden-complete, defeat (THE GARDEN FADES), and victory screens have an accessible HTML action button. Bold outlined Arial/Helvetica text, dusk gradients, parallax hills, bamboo silhouettes, fireflies, and all characters are drawn locally with Canvas. Original synthesized Web Audio effects initialize on interaction and fail safely. No external assets, requests, fonts or music.
+Original Canvas art includes Milo's ears, whiskers, stripes and tail, mice, dogs, fish, catnip, cardboard, cat flaps and food bowls. Parallax dusk buildings, garden trees and night rooftops distinguish levels. Bold outlined Arial/Helvetica text accompanies the level/lives/fish/score/timer/progress/message HUD. The title sprite remains at x=270, y=420 away from text. Title, pause, level-complete, THE ALLEY FADES and victory screens have HTML action buttons.
+
+Original synthesized Web Audio jump, pounce, fish, catnip, flap, win and lose effects initialize lazily and fail safely. All files are local; no external assets, fonts or network requests.
 
 ## Architecture and verification
+The level loader, physics, player, enemies and Game state machine retain their existing structure. The browser exposes window.MEOWRUN. The input module exports createTouchState for Node use; regression tests also drive actual listener wiring with fake DOM targets.
 
-- `levels.js`: data-driven string tile maps and object loading.
-- `physics.js`: collision and movement primitives.
-- `player.js`: movement feel, growth and shrinking.
-- `enemies.js`: beetle patrol and stomp classification.
-- `game.js`: pure state machine, exposed as `window.BAMBOORUN`.
-- `render.js`, `audio.js`, `input.js`, `main.js`: canvas art, sound, controls and browser loop.
-- `tests/regression.mjs`: mechanics regressions and three seeded input-only full level completions.
+Run node tests/regression.mjs: 12 original mechanic/autoplay groups plus three touch groups (newest direction, pointer-leave/slide, stray window release). main.ts keeps deterministic copying and dossier generation; the vendor kit and MIT license are unchanged.
 
-Run `node tests/regression.mjs` for headless verification. `main.ts` retains the supplied deterministic copy-and-dossier behavior and unchanged vendor kit. Browser rendering, mobile interaction and real screenshots are validated by the parent outside this sandbox. Old TORCHDEEP screenshots are removed; replacement screenshots must be captured before submission. MIT license retained.
+Browser rendering, actual mobile slide gestures and 3–4 replacement screenshots must be verified by the parent. Obsolete BAMBOO RUN screenshots are removed. No commit or submission is performed here.

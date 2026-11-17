@@ -9,8 +9,8 @@ export class Sound {
   }
   play(name) {
     if (this.muted || !this.context) return;
-    const notes = { jump: [330, 660], stomp: [160, 95], drop: [880, 1320], berry: [440, 550, 660],
-      tube: [400, 250, 150], win: [523, 659, 784, 1047], lose: [330, 247, 165], hurt: [180, 100], break: [100, 65] }[name] || [330];
+    const notes = { jump: [330, 660], pounce: [160, 95], fish: [880, 1320], catnip: [440, 550, 660],
+      flap: [400, 250, 150], win: [523, 659, 784, 1047], lose: [330, 247, 165], hurt: [180, 100], break: [100, 65] }[name] || [330];
     try {
       notes.forEach((note, i) => {
         const oscillator = this.context.createOscillator(), gain = this.context.createGain();

@@ -4,7 +4,7 @@ import { setupInput } from './input.js';
 import { render } from './render.js';
 
 const game = new Game();
-window.BAMBOORUN = game;
+window.MEOWRUN = game;
 const sound = new Sound(), input = setupInput(game, sound);
 const context = document.querySelector('#game').getContext('2d');
 let previous = performance.now(), accumulator = 0;

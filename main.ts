@@ -1,4 +1,4 @@
-// BAMBOO RUN submission entrypoint (Node 22), authored for Pip's bamboo garden.
+// MEOW RUN submission entrypoint (Node 22), authored for Milo's cat adventure.
 // Hand in game/ and screenshots/ alongside the vendored buildDossier summary.
 // Output goes to /output, or MAKEFUN_OUTPUT_DIR when building locally.
 
