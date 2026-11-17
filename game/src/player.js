@@ -1,72 +1,33 @@
-// TORCHDEEP — player.js
-// The hero: stats, experience, levels, inventory (potions, gold, torch fuel).
-// Pure logic, no DOM. All numbers are plain fields so tests can drive them.
-
-import { POTION_HEAL_FRACTION, SKILL_MP_COST, TORCH_MAX, xpForLevel } from './data.js';
-
-export function createPlayer() {
-  return {
-    level: 1,
-    xp: 0,
-    xpNext: xpForLevel(1),
-    maxHp: 40,
-    hp: 40,
-    maxMp: 20,
-    mp: 20,
-    atk: 8,
-    def: 2,
-    gold: 0,
-    potions: 2,
-    torch: TORCH_MAX,
-    // Position on the current floor (set by dungeon placement).
-    x: 1,
-    y: 1,
-  };
+import { GRAVITY, JUMP_SPEED, moveBody, solidAt } from './physics.js';
+export function createPlayer(x = 96, y = 530) {
+  return { x, y, w: 30, h: 38, vx: 0, vy: 0, big: false, grounded: false,
+    coyote: 0, buffer: 0, invincible: 0, facing: 1 };
 }
-
-// Add xp; returns how many levels were gained (0 if none).
-// A level-up raises max HP / MP / attack / defence and heals the hero fully.
-export function gainXp(player, amount) {
-  player.xp += amount;
-  let gained = 0;
-  while (player.xp >= player.xpNext) {
-    player.xp -= player.xpNext;
-    player.level += 1;
-    player.xpNext = xpForLevel(player.level);
-    player.maxHp += 8;
-    player.maxMp += 5;
-    player.atk += 2;
-    player.def += 1;
-    player.hp = player.maxHp;
-    player.mp = player.maxMp;
-    gained += 1;
+export function grow(player, world) {
+  if (player.big) return;
+  // Keep feet planted. Defer growth beneath a low ceiling until space opens.
+  if (solidAt(world, player.x + 2, player.y - 20) || solidAt(world, player.x + player.w - 2, player.y - 20)) {
+    player.pendingGrowth = true; return;
   }
-  return gained;
+  player.big = true; player.y -= 20; player.h = 58; player.pendingGrowth = false;
 }
-
-// Drink a potion: heals 40% of max HP. Returns the HP restored (0 if none left).
-export function drinkPotion(player) {
-  if (player.potions <= 0) return 0;
-  if (player.hp >= player.maxHp) return 0;
-  player.potions -= 1;
-  const healed = Math.min(
-    player.maxHp - player.hp,
-    Math.round(player.maxHp * POTION_HEAL_FRACTION),
-  );
-  player.hp += healed;
-  return healed;
+export function shrink(player) {
+  player.big = false; player.y += player.h - 38; player.h = 38; player.invincible = 1.6;
 }
-
-// Can the hero cast Ember Strike right now?
-export function canCastSkill(player) {
-  return player.mp >= SKILL_MP_COST;
-}
-
-export function spendSkillMp(player) {
-  player.mp -= SKILL_MP_COST;
-}
-
-// Score shown on the win screen: gold plus bonuses for level and floors.
-export function computeScore(player, floorsCleared) {
-  return player.gold + player.level * 100 + floorsCleared * 50;
+export function updatePlayer(player, world, input, dt, emit) {
+  if (player.pendingGrowth) grow(player, world);
+  player.invincible = Math.max(0, player.invincible - dt);
+  player.coyote = player.grounded ? .1 : Math.max(0, player.coyote - dt);
+  player.buffer = input.jumpPressed ? .1 : Math.max(0, player.buffer - dt);
+  const direction = Number(!!input.right) - Number(!!input.left);
+  player.vx += (direction * 300 - player.vx) * Math.min(1, dt * (player.grounded ? 18 : 10));
+  if (direction) player.facing = direction;
+  if (player.buffer > 0 && player.coyote > 0) {
+    player.vy = -JUMP_SPEED; player.buffer = 0; player.coyote = 0; player.grounded = false; emit('jump');
+  }
+  if (!input.jump && player.vy < -260) player.vy = -260;
+  player.vy = Math.min(1000, player.vy + GRAVITY * dt);
+  moveBody(player, world, dt, (x, y) => {
+    if (player.big && world.tiles[y][x] === 'B') { world.tiles[y][x] = '.'; emit('break'); }
+  });
 }

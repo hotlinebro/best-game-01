@@ -1,34 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TORCHDEEP — a turn-based dungeon crawl</title>
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: #05050e;
-    height: 100%;
-  }
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  #game {
-    display: block;
-    width: min(100vw, calc(100vh * 16 / 9));
-    height: min(100vh, calc(100vw * 9 / 16));
-    background: #0d0d1d;
-    touch-action: manipulation;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102b2b">
+  <title>BAMBOO RUN — Pip's dusk adventure</title>
+  <style>
+    * { box-sizing: border-box; } body { margin: 0; background: #091c22; color: #fff5cd; font-family: Arial, Helvetica, sans-serif; font-weight: bold; }
+    main { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
+    .masthead { width: min(1280px, 100%); display: flex; justify-content: space-between; gap: 12px; padding: 8px 4px 14px; color: #acd9b4; letter-spacing: 3px; font-size: 12px; }
+    .stage { width: min(1280px, 100%); position: relative; border: 1px solid #43634d; border-radius: 18px; overflow: hidden; box-shadow: 0 22px 90px #0008; }
+    canvas { display: block; width: 100%; aspect-ratio: 16/9; touch-action: none; }
+    #action { position: absolute; left: 50%; top: 76%; transform: translate(-50%, -50%); min-width: 210px; background: #ffe58c; color: #183c31; border: 3px solid #fff1b1; border-radius: 12px; padding: 14px 26px; font: bold clamp(14px, 2vw, 22px) Arial; cursor: pointer; box-shadow: 0 5px 0 #b89241; }
+    #action[hidden] { display: none; }
+    .controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: min(1280px, 100%); padding-top: 14px; }
+    .group { display: flex; gap: 8px; } button { touch-action: none; user-select: none; -webkit-user-select: none; }
+    .controls button { color: #e7f4cc; background: #1d3d39; border: 1px solid #577660; border-radius: 12px; min-width: 48px; min-height: 48px; font: bold 18px Arial; cursor: pointer; }
+    button:active { filter: brightness(1.35); } button:focus-visible { outline: 3px solid #fff2a8; outline-offset: 3px; }
+    .jump { padding: 0 22px; } .hint { color: #9bb9ab; font-size: 12px; text-align: center; }
+    @media(max-width: 650px) { main { padding: 5px; } .masthead { font-size: 9px; letter-spacing: 1px; } .hint { display: none; } .controls { padding-top: 8px; gap: 5px; } .controls button { min-width: 42px; } #action { padding: 8px 16px; min-width: 160px; } }
+  </style>
 </head>
 <body>
-<canvas id="game" width="1280" height="720"></canvas>
+<main>
+  <header class="masthead"><span>BAMBOO RUN / A GARDEN ADVENTURE</span><span>ORIGINAL ARCADE · 03 GARDENS</span></header>
+  <div class="stage">
+    <canvas id="game" width="1280" height="720" aria-label="Bamboo Run platformer. Move with arrows or A D, jump with Space, enter tubes with Down."></canvas>
+    <button id="action">LET'S GROW →</button>
+  </div>
+  <nav class="controls" aria-label="Game controls">
+    <div class="group"><button data-hold="left" aria-label="Move left">◀</button><button data-hold="right" aria-label="Move right">▶</button><button data-hold="down" aria-label="Enter tube">↓</button></div>
+    <span class="hint">A D / ← → MOVE &nbsp; SPACE JUMP &nbsp; ↓ TUBE<br>P PAUSE &nbsp; R RESTART &nbsp; M SOUND</span>
+    <div class="group"><button id="pause" aria-label="Pause">Ⅱ</button><button id="mute" aria-label="Mute sound">♪</button><button class="jump" data-hold="jump">JUMP ↑</button></div>
+  </nav>
+</main>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

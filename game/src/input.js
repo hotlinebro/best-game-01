@@ -1,126 +1,48 @@
-// TORCHDEEP — input.js
-// Keyboard + mouse/touch input. Translates raw events into game actions.
-// No game logic here — main.js supplies the handlers. Pointer coordinates
-// are converted from screen pixels to the canvas's 1280x720 space.
-
-import { GRID_X, GRID_Y, TILE, battleButtons, endButton, pauseButton, titleButton } from './render.js';
-
-const DIRS = {
-  ArrowUp: [0, -1],
-  ArrowDown: [0, 1],
-  ArrowLeft: [-1, 0],
-  ArrowRight: [1, 0],
-  w: [0, -1],
-  s: [0, 1],
-  a: [-1, 0],
-  d: [1, 0],
-  W: [0, -1],
-  S: [0, 1],
-  A: [-1, 0],
-  D: [1, 0],
-};
-
-function inside(x, y, box) {
-  return x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
-}
-
-// `handlers` is an object with: start, move(dx, dy), battle(action),
-// pause, resume, restart, mute, toTitle.
-// Returns a detach function.
-export function attachInput(canvas, game, handlers) {
-  function toCanvas(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: ((e.clientX - rect.left) / rect.width) * canvas.width,
-      y: ((e.clientY - rect.top) / rect.height) * canvas.height,
-    };
+export function setupInput(game, sound) {
+  const held = new Set(), edges = new Set();
+  const mapping = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+    ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', ArrowDown: 'down', KeyS: 'down' };
+  const action = document.querySelector('#action');
+  function activate() { sound.unlock(); game.action(); }
+  function mute() { sound.muted = !sound.muted; document.querySelector('#mute').textContent = sound.muted ? '♪ ×' : '♪'; }
+  window.addEventListener('keydown', event => {
+    if (mapping[event.code] || ['Enter', 'KeyP', 'KeyR', 'KeyM'].includes(event.code)) event.preventDefault();
+    sound.unlock(); if (event.repeat) return;
+    if (event.code === 'Enter' || (event.code === 'Space' && game.mode !== 'playing')) { activate(); return; }
+    if (event.code === 'KeyP') game.pause();
+    if (event.code === 'KeyR') game.start();
+    if (event.code === 'KeyM') mute();
+    const key = mapping[event.code];
+    if (key) { held.add(event.code); edges.add(key); }
+  });
+  window.addEventListener('keyup', event => held.delete(event.code));
+  const pointers = new Map();
+  for (const button of document.querySelectorAll('[data-hold]')) {
+    button.addEventListener('pointerdown', event => {
+      event.preventDefault(); sound.unlock(); button.setPointerCapture(event.pointerId);
+      pointers.set(event.pointerId, button.dataset.hold); edges.add(button.dataset.hold);
+    });
+    const release = event => pointers.delete(event.pointerId);
+    button.addEventListener('pointerup', release); button.addEventListener('pointercancel', release);
+    button.addEventListener('lostpointercapture', release);
   }
-
-  function onPointer(e) {
-    e.preventDefault();
-    const { x, y } = toCanvas(e);
-    const screen = game.screen;
-    if (screen === 'title') {
-      if (inside(x, y, titleButton())) handlers.start();
-      return;
-    }
-    if (screen === 'explore') {
-      const tx = Math.floor((x - GRID_X) / TILE);
-      const ty = Math.floor((y - GRID_Y) / TILE);
-      const dx = tx - game.player.x;
-      const dy = ty - game.player.y;
-      if ((Math.abs(dx) === 1 && dy === 0) || (Math.abs(dy) === 1 && dx === 0)) {
-        handlers.move(dx, dy);
-      }
-      return;
-    }
-    if (screen === 'battle') {
-      for (const b of battleButtons()) {
-        if (inside(x, y, b)) {
-          handlers.battle(b.action);
-          return;
-        }
-      }
-      return;
-    }
-    if (screen === 'pause') {
-      if (inside(x, y, pauseButton())) handlers.resume();
-      return;
-    }
-    if (screen === 'win' || screen === 'lose') {
-      if (inside(x, y, endButton())) handlers.restart();
-    }
-  }
-
-  function onKey(e) {
-    const screen = game.screen;
-    const key = e.key;
-    if (key === 'm' || key === 'M') {
-      handlers.mute();
-      return;
-    }
-    if (key === 'r' || key === 'R') {
-      if (screen !== 'title') handlers.restart();
-      return;
-    }
-    if (key === 'p' || key === 'P') {
-      if (screen === 'explore' || screen === 'battle') handlers.pause();
-      else if (screen === 'pause') handlers.resume();
-      return;
-    }
-    if (key === 'Escape' && screen === 'pause') {
-      handlers.resume();
-      return;
-    }
-    if (screen === 'title' && (key === 'Enter' || key === ' ')) {
-      e.preventDefault();
-      handlers.start();
-      return;
-    }
-    if (screen === 'win' || screen === 'lose') {
-      if (key === 'Enter' || key === ' ') handlers.restart();
-      return;
-    }
-    if (screen === 'pause' && (key === 'Enter' || key === ' ')) {
-      handlers.resume();
-      return;
-    }
-    if (screen === 'explore' && DIRS[key]) {
-      e.preventDefault();
-      const [dx, dy] = DIRS[key];
-      handlers.move(dx, dy);
-      return;
-    }
-    if (screen === 'battle') {
-      const actions = { 1: 'attack', 2: 'skill', 3: 'potion', 4: 'defend' };
-      if (actions[key]) handlers.battle(actions[key]);
-    }
-  }
-
-  canvas.addEventListener('pointerdown', onPointer);
-  window.addEventListener('keydown', onKey);
-  return () => {
-    canvas.removeEventListener('pointerdown', onPointer);
-    window.removeEventListener('keydown', onKey);
+  window.addEventListener('blur', () => { held.clear(); pointers.clear(); edges.clear(); if (game.mode === 'playing') game.pause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && game.mode === 'playing') game.pause(); });
+  action.addEventListener('click', activate);
+  document.querySelector('#game').addEventListener('click', () => { if (game.mode !== 'playing') activate(); });
+  document.querySelector('#pause').addEventListener('click', () => game.pause());
+  document.querySelector('#mute').addEventListener('click', mute);
+  return {
+    read() {
+      const keys = new Set([...held].map(code => mapping[code]).concat([...pointers.values()]));
+      const input = { left: keys.has('left'), right: keys.has('right'), jump: keys.has('jump'),
+        jumpPressed: edges.has('jump'), downPressed: edges.has('down') };
+      edges.clear(); return input;
+    },
+    sync() {
+      action.hidden = game.mode === 'playing';
+      action.textContent = { title: "LET'S GROW →", paused: 'KEEP GROWING →', complete: 'NEXT GARDEN →',
+        gameover: 'TRY AGAIN →', win: 'RUN AGAIN →' }[game.mode] || '';
+    },
   };
 }

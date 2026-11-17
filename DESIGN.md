@@ -1,54 +1,29 @@
-# TORCHDEEP
+# BAMBOO RUN
 
-**Genre:** turn-based dungeon crawler / web RPG.
+Run, hop and stomp through the bamboo garden. Pip is a little green sprout on an original three-garden platforming adventure: Firefly Footpath, Amber Canopy, and Moonrise Grove. Reach each bamboo flag; finish garden three to win. Three lives, 120 seconds per garden. Pits and unprotected enemy contact cost a life and restart the current garden; zero lives or a depleted timer ends the run.
 
-Descend seven floors of a dark dungeon with one torch to keep alive. Explore each floor, fight monsters turn by turn, level up, grab gold, potions and torch oil, and find the stairs down. Slay the Ember King on floor 7 to win; lose when your HP reaches zero.
+## Feel and rules
 
-## The twist: the torch
+48px tiles on a responsive 1280×720 canvas. Fixed 120Hz simulation, acceleration and braking, smooth camera, 100ms coyote time and jump buffering. Holding jump gives a full leap; releasing cuts upward velocity. Later gardens introduce wider gaps and more hazards, with safe landing areas.
 
-Every step burns 1 torch fuel. Oil flasks refill it by 40. A full torch lights 5 tiles around you; below 30 fuel you see only 3; when the flame dies you see 1 tile and monsters hit 50% harder. Light is a resource you manage alongside HP and MP — explore fast, grab oil, don't get caught in the dark.
+Sun drops award 10 points, beetle stomps 50, and sun berries 25. Completing a garden awards remaining displayed seconds ×10. Berries grow Pip: one hit shrinks him, followed by 1.6 seconds of protection. Big Pip breaks bamboo blocks with his head. Beetles patrol and can be stomped from above; spiky burrs cannot. Death resets the current garden's objects and timer while preserving accumulated score and sun drops.
 
-## Floors
+Stand on a bamboo tube and press Down to visit the Sun Drop Sanctuary. Its tube returns Pip to the same garden and position, retaining size and collectibles. The level timer continues in the sanctuary. Growth under a low ceiling waits until there is room.
 
-- 7 floors, each a 13×9 stone room with pillars, 3–5 roaming monsters, and potion / oil / gold loot.
-- The stairs down stay sealed until every monster on the floor is defeated (the HUD shows how many remain).
-- Descending restores 20 torch fuel. Monsters grow stronger every floor: slimes and rats, then bats and skeletons, spiders and golems, finally ember imps — and the Ember King (130 HP, crowned, with his own HP bar) waiting on floor 7.
+## Controls and presentation
 
-## Turn-based combat
+Left/Right or A/D move; Space, W or Up jump; Down enters tubes; P pauses; R restarts the whole run; M toggles sound. Enter, Space or click starts, continues, or restarts from an intermission screen. HTML pointer controls support simultaneous movement and jumping, plus tube, pause and sound buttons. Blur pauses the game and clears held inputs.
 
-Bump into a monster to open the battle screen. Each turn you pick one action, then the monster answers:
+The HUD shows garden, lives, sun drops, score, timer, progress and contextual guidance. Title, pause, garden-complete, defeat (THE GARDEN FADES), and victory screens have an accessible HTML action button. Bold outlined Arial/Helvetica text, dusk gradients, parallax hills, bamboo silhouettes, fireflies, and all characters are drawn locally with Canvas. Original synthesized Web Audio effects initialize on interaction and fail safely. No external assets, requests, fonts or music.
 
-- **1 Attack** — your sword, damage = attack + small variance − enemy defence.
-- **2 Ember Strike** — 5 MP, double damage, a blaze of fire.
-- **3 Potion** — heals 40% of max HP (uses one potion).
-- **4 Defend** — halve the next hit.
+## Architecture and verification
 
-Winning a fight pays XP and gold; monsters sometimes drop a potion. XP levels you up: +8 max HP, +5 max MP, +2 attack, +1 defence, and a full heal. Score = gold + 100 per level + 50 per floor cleared.
+- `levels.js`: data-driven string tile maps and object loading.
+- `physics.js`: collision and movement primitives.
+- `player.js`: movement feel, growth and shrinking.
+- `enemies.js`: beetle patrol and stomp classification.
+- `game.js`: pure state machine, exposed as `window.BAMBOORUN`.
+- `render.js`, `audio.js`, `input.js`, `main.js`: canvas art, sound, controls and browser loop.
+- `tests/regression.mjs`: mechanics regressions and three seeded input-only full level completions.
 
-## Controls
-
-- Move: arrow keys / WASD, or tap an adjacent tile (mouse/touch friendly).
-- Battle: click an action button or press 1–4.
-- Start / restart: click the button or press Enter / Space (restart also on R).
-- P pauses, M mutes, Esc resumes.
-
-## HUD
-
-HP and MP bars, level and XP bar, torch bar, gold, potions, floor, and monsters remaining — plus a message line for pickups and hints.
-
-## Look and sound
-
-Dark stone, torch glow, and code-drawn monsters (each kind has its own shape and colour). All text is bold Arial/Helvetica with a dark outline so it reads at a glance. Sound is synthesized Web Audio: steps, sword swings, hits, potions, coins, level-up arpeggios, victory and defeat themes — lazy-initialized on the first gesture and failure-safe.
-
-## Files
-
-- `game/index.html` — page shell, 1280×720 canvas.
-- `game/src/main.js` — browser wiring, frame loop, one-second timer.
-- `game/src/game.js` — pure state machine (title / explore / battle / pause / win / lose).
-- `game/src/dungeon.js` — floor generation, tiles, loot, stairs.
-- `game/src/battle.js` — turn-based combat rules.
-- `game/src/player.js` — stats, XP, levels, potions, score.
-- `game/src/data.js` — monster tables, boss, loot, XP curve.
-- `game/src/render.js` — all canvas drawing.
-- `game/src/audio.js` — synthesized sound effects.
-- `game/src/input.js` — keyboard + mouse/touch input.
+Run `node tests/regression.mjs` for headless verification. `main.ts` retains the supplied deterministic copy-and-dossier behavior and unchanged vendor kit. Browser rendering, mobile interaction and real screenshots are validated by the parent outside this sandbox. Old TORCHDEEP screenshots are removed; replacement screenshots must be captured before submission. MIT license retained.
