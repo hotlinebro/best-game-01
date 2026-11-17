@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/regression.mjs",
+    "test": "node tests/eclipse.test.mjs && node tests/autoplay.mjs && node tests/runtime.mjs",
     "build": "node main.ts"
   }
 }

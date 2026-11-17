@@ -1,22 +1,28 @@
-// MEOW RUN submission entrypoint (Node 22), authored for Milo's cat adventure.
 import { cpSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { buildDossier } from './vendor/makefun-game.ts';
 
-const root = dirname(fileURLToPath(import.meta.url));
-const output = resolve(process.env.MAKEFUN_OUTPUT_DIR || '/output');
-if (output === root) throw new Error('Choose an output directory separate from the repository.');
-mkdirSync(output, { recursive: true });
-for (const directory of ['game', 'screenshots']) {
-  cpSync(join(root, directory), join(output, directory), { recursive: true, force: true });
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)));
+const configuredOutput = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const outputDir = isAbsolute(configuredOutput)
+  ? resolve(configuredOutput)
+  : resolve(repoRoot, configuredOutput);
+
+if (outputDir === repoRoot) {
+  throw new Error('MAKEFUN_OUTPUT_DIR must not equal the repository root');
 }
-const dossier = buildDossier(output, {
+
+mkdirSync(outputDir, { recursive: true });
+cpSync(join(repoRoot, 'game'), join(outputDir, 'game'), { recursive: true });
+cpSync(join(repoRoot, 'screenshots'), join(outputDir, 'screenshots'), { recursive: true });
+
+const dossier = buildDossier(outputDir, {
   text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
   game_max_files: 993,
-  game_max_bytes: 48 * 1024 * 1024,
+  game_max_bytes: 50331648,
   game_path_max_bytes: 1000,
-  screenshots: { max: 4, max_bytes: 256 * 1024 },
 });
-writeFileSync(join(output, 'dossier.json'), dossier);
-console.log(`MEOW RUN packaged: ${dossier.byteLength} dossier bytes.`);
+writeFileSync(join(outputDir, 'dossier.json'), dossier);
+console.log(`ECLIPSE COURIER packaged (dossier ${Buffer.byteLength(dossier, 'utf8')} bytes)`);
