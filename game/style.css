@@ -1,4 +1,11 @@
 :root{color-scheme:dark;font-family:Arial,Helvetica,sans-serif;color:#f6eacf;background:#090d24;--amber:#ffc875;--muted:#a4a4c1}
+#tutorial{position:fixed;top:36%;left:50%;transform:translateX(-50%);width:max-content;max-width:94vw;text-align:center;pointer-events:none;color:#ffc875;font-size:17px;font-weight:bold;letter-spacing:1px}
+#tutorial-text{display:block;padding:12px 18px;background:#090d24ed;border:1px solid #ffc87555;border-radius:24px}
+#tutorial-skip{display:block;margin:8px auto 0;padding:10px 14px;min-height:44px;font-size:10px;letter-spacing:1px;border:1px solid #ffc87588;background:#090d24ed;pointer-events:auto}
+#howto{max-width:460px;margin:12px auto;padding:10px 16px;border:1px solid #ffc87555;background:#090d24c9;text-align:left;font-size:12px;line-height:1.4}
+#howto h3{margin:0 0 5px;color:var(--amber);font-size:11px;letter-spacing:2px}#howto ol{margin:0;padding-left:20px}#howto b{color:var(--amber)}#howto p{font-size:11px;margin:7px 0 0}
+#title-screen{max-height:100dvh;overflow-y:auto;touch-action:pan-y;scrollbar-width:thin;padding-bottom:32px}#title-screen h1{font-size:clamp(55px,7vw,86px);margin:12px 0 16px}#title-screen .tagline{margin:10px 0 16px}#title-screen .three-verbs{margin:16px 0 10px}
+@media(max-width:700px){#tutorial{font-size:14px;letter-spacing:.4px}#tutorial-text{padding:10px 12px}#howto{padding:9px 12px}}
 *{box-sizing:border-box}body{margin:0;overflow:hidden;touch-action:none;user-select:none}button{font:inherit;color:inherit;cursor:pointer;touch-action:none}button:focus-visible{outline:3px solid #fff;outline-offset:5px}[hidden]{display:none!important}
 #city{position:fixed;width:100%;height:100%;inset:0}#overlay{position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(90deg,#090d24ed,#090d2490 52%,#090d2410)}
 .screen{width:min(580px,90vw);text-align:center;padding:20px 16px;position:relative}.eyebrow{font-size:11px;font-weight:800;letter-spacing:4px;color:var(--amber);margin-bottom:18px}

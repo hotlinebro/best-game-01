@@ -5,11 +5,13 @@ import {installInput} from './input.js';
 import {SolarAudio} from './audio.js';
 import {loadRecords,saveRecord} from './save.js';
 import {courierBot} from './autopilot.js';
+import {createTutorial} from './tutorial.js';
 
 const $=id=>document.getElementById(id);
 const renderer=new CityRenderer($('city')),audio=new SolarAudio();
 let storage;try{storage=localStorage;}catch{storage={getItem:()=>null,setItem:()=>{}};}
 const records=loadRecords(storage);
+const tutorial=createTutorial(storage,records,{box:$('tutorial'),text:$('tutorial-text'),skip:$('tutorial-skip')});
 let run=createRun(),mode='title',totalTime=0,totalStars=0,completed=[],demo=false,frozen=false,stop=0,last=0,accumulator=0;
 const input=installInput($('city'),{
   canAim:()=>mode==='play'&&run.disc.held,
@@ -20,6 +22,7 @@ const input=installInput($('city'),{
 });
 function setMode(value){
   mode=value;input.clear();accumulator=0;
+  if(value!=='play')tutorial.hide();
   $('overlay').hidden=value==='play';
   for(const id of ['title','pause','result','select'])$(id+'-screen').hidden=true;
   const panel={title:'title',pause:'pause',clear:'result',win:'result',lose:'result',select:'select'}[value];
@@ -30,7 +33,7 @@ function setMode(value){
 }
 function start(index=0,newCampaign=false){
   if(newCampaign){totalTime=0;totalStars=0;completed=[];}
-  run=createRun(index);renderer.camera=0;renderer.particles=[];stop=0;frozen=false;setMode('play');updateHUD();renderer.draw(run,mode,input.aim,0);
+  run=createRun(index);tutorial.reset(run,demo);renderer.camera=0;renderer.particles=[];stop=0;frozen=false;setMode('play');updateHUD();renderer.draw(run,mode,input.aim,0);
 }
 function next(){
   if(mode==='win'){start(0,true);return;}
@@ -45,6 +48,7 @@ function updateHUD(){
   $('glow').style.color=run.glow<3?'#ff8e8e':'#ffe5b6';
   $('hint').textContent=run.time<6?run.level.tip:run.disc.held?'DRAG TOWARD YOUR TARGET · RELEASE TO THROW · SPACE TO JUMP':'CHASE THE SUN · CATCH TO REFILL +5s';
   $('callout').textContent=demo?'DEMO / AUTOPILOT':run.disc.held?'THROW → DASH → CATCH':run.lit?'FIND YOUR NEXT SHADOW':'YOU ARE THE FAST THING IN THE DARK';
+  $('hint').hidden=tutorial.update(run,input.aim,{demo,touch:globalThis.matchMedia?.('(pointer:coarse)').matches,aiming:!frozen&&!!input.aim});
 }
 function showResults(value){
   const lost=value==='lose',win=value==='win';
@@ -58,6 +62,7 @@ function showResults(value){
 }
 function finish(){
   if(run.status==='lose'){setMode('lose');return;}
+  if(run.level.index===0)tutorial.complete();
   if(!completed.includes(run.level.index)){completed.push(run.level.index);totalTime+=run.time;totalStars+=run.stars;}
   saveRecord(storage,records,run.level.index,run);
   setMode(run.level.index===6&&completed.length===7?'win':'clear');
@@ -65,6 +70,7 @@ function finish(){
 function tick(){
   if(mode!=='play'||frozen)return;
   const intents=demo?courierBot(run):input.read();
+  tutorial.track(run);
   stepRun(run,intents);
   for(const e of run.events){audio.play(e.type);renderer.burst(e);if(e.type==='land'&&!renderer.reduced)stop=.028;if(e.type==='catch'&&!renderer.reduced)stop=.04;}
   if(run.status!=='play')finish();
@@ -94,6 +100,7 @@ window.addEventListener('resize',()=>renderer.resize());renderer.resize();
 
 function captureState(screen='title',level=0){
   demo=false;run=createRun(Math.max(0,Math.min(6,level)));frozen=true;
+  tutorial.reset(run);input.clear();
   if(screen==='play'){
     run.player.x=270;run.player.y=430;run.time=3.2;run.glow=8.4;run.disc.x=288;run.disc.y=398;
     setMode('play');renderer.camera=0;updateHUD();
@@ -109,6 +116,7 @@ window.ECLIPSE={
   get state(){return {mode,run,totalTime,totalStars,demo,frozen};},
   start:(level=0)=>{demo=false;start(level,true);},
   capture:captureState,
+  tutorial:()=>tutorial.debug(),
   demo:(level=0)=>{demo=true;start(level,true);},
   freeze:(value=true)=>{frozen=value;},
   step:(count=1)=>{for(let i=0;i<count;i++){stepRun(run,courierBot(run));if(run.status!=='play')break;}updateHUD();renderer.draw(run,mode,input.aim,0);return run.status;},

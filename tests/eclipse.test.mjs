@@ -4,6 +4,52 @@ import {createRun,stepRun,launchDisc,arcPoint,throwVelocity,canCatch,hasFallen,s
 import {LEVELS,buildLevel,routeMetrics} from '../game/levels.js';
 import {PointerActions} from '../game/input.js';
 import {loadRecords,saveRecord} from '../game/save.js';
+import {tutorialStep,createTutorial} from '../game/tutorial.js';
+
+const lesson={levelIndex:0,discHeld:true,aiming:false,throws:0,catches:0,playerX:80,throwX:80,status:'play'};
+test('tutorial derives all five prompts and tolerates out-of-order play',()=>{
+  const step=patch=>tutorialStep({...lesson,...patch}).step;
+  assert.equal(step({}),1);assert.equal(step({aiming:true}),2);
+  assert.equal(step({discHeld:false,throws:1}),3);
+  assert.equal(step({discHeld:false,throws:1,playerX:110}),3);
+  assert.equal(step({discHeld:false,throws:1,playerX:111}),4);
+  assert.equal(step({catches:1}),5);
+  assert.equal(step({catches:1,aiming:true}),5);
+  for(const status of ['lose','clear'])assert.equal(step({status}),0);
+  assert.equal(step({levelIndex:1}),0);
+  assert.match(tutorialStep({...lesson,touch:true}).text,/HOLD THROW/);
+});
+function tutorialFixture(records=[]){
+  const data=new Map(),storage={getItem:k=>data.get(k),setItem:(k,v)=>data.set(k,v)};
+  const els={box:{hidden:true},text:{textContent:''},skip:{}};
+  return {data,storage,els,make:()=>createTutorial(storage,records,els)};
+}
+test('tutorial skip persists and returning players do not see it',()=>{
+  const f=tutorialFixture(),run=createRun(),t=f.make();
+  t.reset(run);assert.equal(t.update(run,null),true);
+  f.els.skip.onclick();assert.equal(f.els.box.hidden,true);
+  assert.equal(f.data.get('eclipse-courier-tutorial-done'),'1');
+  const reloaded=f.make();reloaded.reset(run);assert.equal(reloaded.update(run,null),false);
+  const returning=tutorialFixture([{time:30,stars:3}]).make();
+  returning.reset(run);assert.equal(returning.update(run,null),false);
+});
+test('tutorial tracks launch position, retries after loss, hides in demo and completes on clear',()=>{
+  const f=tutorialFixture(),t=f.make(),run=createRun();t.reset(run);
+  run.player.x=200;t.track(run);run.throws=1;run.disc.held=false;run.player.x=231;
+  t.update(run,null);assert.equal(t.debug().step,4);
+  run.status='lose';assert.equal(t.update(run,null),false);assert.equal(f.data.size,0);
+  const retry=createRun();t.reset(retry);assert.equal(t.update(retry,null),true);
+  t.hide();assert.equal(t.debug().active,false);assert.equal(t.update(retry,null),true);
+  t.reset(retry,true);assert.equal(t.update(retry,null,{demo:true}),false);
+  t.complete();assert.equal(f.data.size,0);
+  t.reset(retry);retry.catches=1;t.update(retry,null);assert.equal(t.debug().step,5);
+  retry.status='clear';t.update(retry,null);assert.equal(f.data.get('eclipse-courier-tutorial-done'),'1');
+});
+test('tutorial survives storage access failures',()=>{
+  const t=createTutorial({getItem(){throw Error('denied');},setItem(){throw Error('denied');}},[],{box:{},text:{},skip:{}});
+  const run=createRun();t.reset(run);assert.equal(t.update(run,null),true);
+  assert.doesNotThrow(()=>t.complete());assert.equal(t.debug().active,false);
+});
 
 test('ballistic arc starts at hand, rises, falls and bends with wind',()=>{
   const o={x:40,y:398},v={x:450,y:-300};
