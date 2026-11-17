@@ -1,25 +1,36 @@
-export class Sound {
-  constructor() { this.context = null; this.muted = false; }
+export class Audio {
+  constructor() {
+    this.context = null;
+    this.muted = false;
+  }
+
   unlock() {
     try {
-      const Audio = globalThis.AudioContext || globalThis.webkitAudioContext;
-      if (!this.context && Audio) this.context = new Audio();
-      this.context?.resume()?.catch(() => {});
-    } catch { /* Audio is optional. */ }
+      const Constructor = globalThis.AudioContext || globalThis.webkitAudioContext;
+      if (!Constructor) return;
+      this.context ||= new Constructor();
+      if (this.context.state === 'suspended') this.context.resume().catch(() => {});
+    } catch { this.context = null; }
   }
+
   play(name) {
-    if (this.muted || !this.context) return;
-    const notes = { jump: [330, 660], pounce: [160, 95], fish: [880, 1320], catnip: [440, 550, 660],
-      flap: [400, 250, 150], win: [523, 659, 784, 1047], lose: [330, 247, 165], hurt: [180, 100], break: [100, 65] }[name] || [330];
+    if (!this.context || this.muted) return;
+    const notes = { jump: [300, 650], pounce: [180, 540], fish: [740, 990],
+      catnip: [420, 840], flap: [240, 480], win: [520, 1040], lose: [240, 70], box: [150, 80] };
     try {
-      notes.forEach((note, i) => {
-        const oscillator = this.context.createOscillator(), gain = this.context.createGain();
-        const time = this.context.currentTime + i * .07;
-        oscillator.type = name === 'break' ? 'triangle' : 'sine'; oscillator.frequency.setValueAtTime(note, time);
-        gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(.08, time + .008);
-        gain.gain.exponentialRampToValueAtTime(.001, time + .16);
-        oscillator.connect(gain); gain.connect(this.context.destination); oscillator.start(time); oscillator.stop(time + .18);
-      });
-    } catch { /* A suspended or unavailable device must never stop gameplay. */ }
+      const [start, end] = notes[name] || [220, 110];
+      const now = this.context.currentTime;
+      const oscillator = this.context.createOscillator();
+      const gain = this.context.createGain();
+      oscillator.type = name === 'box' ? 'triangle' : 'sine';
+      oscillator.frequency.setValueAtTime(start, now);
+      oscillator.frequency.exponentialRampToValueAtTime(end, now + 0.16);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+      oscillator.connect(gain).connect(this.context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.25);
+    } catch { /* Sound is optional; gameplay continues on restricted devices. */ }
   }
 }

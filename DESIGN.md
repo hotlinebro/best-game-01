@@ -1,27 +1,29 @@
-# MEOW RUN
-A little cat. A big adventure.
+# MEOW RUN — design notes
 
-Milo is an original orange tabby on a three-level side-scrolling adventure: Alley Dash (back alley at dusk), Garden Prowl and Rooftop Night. Reach the cat flap home and food bowl in each level to win. Three lives, 120 seconds per level. Gaps and unprotected enemy contact cost a life and restart the level; zero lives or an expired timer ends the run.
+Milo is an original orange tabby with a berry collar, cream muzzle, striped coat, and a very important dinner appointment. The city moves from warm dusk alleys through a leafy garden to moonlit rooftops. Soft silhouettes, glowing windows, hanging lamps, caramel cardboard, and fish-shaped rewards make a welcoming miniature world.
 
-## Feel and rules
-The proven terrain layouts are unchanged: 48px tiles, responsive 1280×720 canvas, fixed 120Hz simulation, acceleration and braking, smooth camera, 100ms coyote time and jump buffering. Hold jump for a full leap, release for a shorter hop.
+The 1280×720 canvas uses 48-pixel tiles. The title card reserves a separate right-hand illustration column for Milo; all explanatory text stays in the left column. Bold Arial with dark outlines, a persistent progress bar, generous touch targets, and responsive scaling keep the game legible. The HUD shows level, lives, fish, score, and time. Every menu includes an HTML action button and keyboard continuation.
 
-Fish award +10, pouncing on grey mice +50, catnip +25, and level completion awards remaining displayed seconds ×10. Brown dogs cannot be pounced on. Catnip grows Milo; one hit shrinks him with 1.6 seconds of protection. Big Milo breaks cardboard boxes from below. Growth waits under a low ceiling. Death resets level objects and timer, preserving score and fish.
+## Loop and mechanics
 
-Stand on a cardboard cat flap and press Down to enter Fish Feast. Down on its flap returns Milo to his saved position with size and fish retained. The timer continues in the bonus room.
+Three data-driven layouts span 100, 120, and 140 tiles. Each has distinct pits, cardboard shelves, four to six mice, two or three dogs, a bonus flap, catnip, and a home bowl. Gaps grow from two to five tiles with safe approach and landing space. Movement is 340 pixels per second, gravity 1850 pixels per second squared, and the initial jump impulse is 790 pixels per second. Holding jump clears the widest gaps; releasing early cuts upward velocity. A tenth-second coyote window and jump buffer soften near misses.
 
-## Controls and presentation
-Arrows/A/D move; Space/W/Up jump; Down/S enters flaps; P pauses, R restarts, M mutes. Enter/Space/click starts or continues. Touch buttons offer left, right, down and jump. Keyboard opposing directions retain their original cancellation behavior.
+Mice can be pounced on from above; dogs always hurt. Catnip grants a protective hit and allows breaking cardboard from below. Bonus-room state persists during each attempt so fish cannot be repeatedly farmed. Returning preserves the exact world position and foot height. The timer continues in Fish Feast but freezes while paused. Death spends one life and resets the current level, including its score checkpoint; timeout ends the run. Completion grants a time bonus once; the third home wins the adventure.
 
-Touch holds track pointer IDs and press order, with the most recent opposing direction winning. Buttons never request capture; implicit browser capture is released. Pointer-enter while pressed supports sliding; pointer-up, cancel, leave and lost capture release holds. Window up/cancel provides a safety net, with stray releases clearing all touch holds. Blur and hidden-page transitions clear input and pause. Jump/down remain edge-triggered.
+## Structure
 
-Original Canvas art includes Milo's ears, whiskers, stripes and tail, mice, dogs, fish, catnip, cardboard, cat flaps and food bowls. Parallax dusk buildings, garden trees and night rooftops distinguish levels. Bold outlined Arial/Helvetica text accompanies the level/lives/fish/score/timer/progress/message HUD. The title sprite remains at x=270, y=420 away from text. Title, pause, level-complete, THE ALLEY FADES and victory screens have HTML action buttons.
+- `levels.js`: layout descriptions, tile maps, entities, bonus room.
+- `physics.js`: bounding boxes, clamping, axis-separated solid collision.
+- `player.js`: movement, jumping, growth, shrinking, cardboard.
+- `enemies.js`: patrols and contact classification.
+- `state.js`: scoring, lives, timer, flap travel, level and menu states.
+- `input.js`: independent input sources, press ordering, keyboard and pointer bindings.
+- `render.js`: original canvas illustration, parallax, HUD, menus.
+- `audio.js`: lazy and failure-safe synthesized effects.
+- `main.js`: DOM controls, fixed-step simulation, debug exposure.
 
-Original synthesized Web Audio jump, pounce, fish, catnip, flap, win and lose effects initialize lazily and fail safely. All files are local; no external assets, fonts or network requests.
+Touch never captures pointers. Button release handles pointerup, pointercancel, pointerleave, and lostpointercapture. Window pointerup/cancel clears all touch holds as a safety net while preserving keyboard holds. Pointerenter with buttons down presses the new direction. Opposing directions resolve by most recent press, and jump/down are rising edges. Blur and document hiding clear input and pause.
 
-## Architecture and verification
-The level loader, physics, player, enemies and Game state machine retain their existing structure. The browser exposes window.MEOWRUN. The input module exports createTouchState for Node use; regression tests also drive actual listener wiring with fake DOM targets.
+## Verification boundary
 
-Run node tests/regression.mjs: 12 original mechanic/autoplay groups plus three touch groups (newest direction, pointer-leave/slide, stray window release). main.ts keeps deterministic copying and dossier generation; the vendor kit and MIT license are unchanged.
-
-Browser rendering, actual mobile slide gestures and 3–4 replacement screenshots must be verified by the parent. Obsolete BAMBOO RUN screenshots are removed. No commit or submission is performed here.
+Node regression tests exercise real logic and event bindings, including complete seeded runs without teleportation or invulnerability. Browser rendering, audio output, device touch behavior, and genuine screenshots require the parent's browser dry run. Packaging requires those screenshots; the build intentionally rejects an empty screenshot set through the kit library. No screenshots, commits, network access, or submission are part of this rebuild.

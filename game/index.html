@@ -3,37 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#102b2b">
-  <title>MEOW RUN — Milo's dusk adventure</title>
+  <meta name="theme-color" content="#201e36">
+  <title>MEOW RUN — A little cat. A big adventure.</title>
   <style>
-    * { box-sizing: border-box; } body { margin: 0; background: #091c22; color: #fff5cd; font-family: Arial, Helvetica, sans-serif; font-weight: bold; }
-    main { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
-    .masthead { width: min(1280px, 100%); display: flex; justify-content: space-between; gap: 12px; padding: 8px 4px 14px; color: #acd9b4; letter-spacing: 3px; font-size: 12px; }
-    .stage { width: min(1280px, 100%); position: relative; border: 1px solid #43634d; border-radius: 18px; overflow: hidden; box-shadow: 0 22px 90px #0008; }
-    canvas { display: block; width: 100%; aspect-ratio: 16/9; touch-action: none; }
-    #action { position: absolute; left: 50%; top: 76%; transform: translate(-50%, -50%); min-width: 210px; background: #ffe58c; color: #183c31; border: 3px solid #fff1b1; border-radius: 12px; padding: 14px 26px; font: bold clamp(14px, 2vw, 22px) Arial; cursor: pointer; box-shadow: 0 5px 0 #b89241; }
-    #action[hidden] { display: none; }
-    .controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: min(1280px, 100%); padding-top: 14px; }
-    .group { display: flex; gap: 8px; } button { touch-action: none; user-select: none; -webkit-user-select: none; }
-    .controls button { color: #e7f4cc; background: #1d3d39; border: 1px solid #577660; border-radius: 12px; min-width: 48px; min-height: 48px; font: bold 18px Arial; cursor: pointer; }
-    button:active { filter: brightness(1.35); } button:focus-visible { outline: 3px solid #fff2a8; outline-offset: 3px; }
-    .jump { padding: 0 22px; } .hint { color: #9bb9ab; font-size: 12px; text-align: center; }
-    @media(max-width: 650px) { main { padding: 5px; } .masthead { font-size: 9px; letter-spacing: 1px; } .hint { display: none; } .controls { padding-top: 8px; gap: 5px; } .controls button { min-width: 42px; } #action { padding: 8px 16px; min-width: 160px; } }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #161827; color: #fff1d6; font-family: Arial, Helvetica, sans-serif; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100svh; padding: 12px; }
+    header { width: min(1280px, 100%); display: flex; justify-content: space-between; align-items: center; padding: 6px 4px 12px; font-size: 13px; font-weight: 800; letter-spacing: 3px; }
+    header span { color: #acb0c9; letter-spacing: 1px; }
+    #stage { position: relative; width: min(1280px, 100%); aspect-ratio: 16 / 9; border: 1px solid #61536c; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 80px #080a16; }
+    canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+    #menu-action { position: absolute; left: 9.4%; top: 73%; width: 29%; height: 9%; border: 2px solid #fff0b8; border-radius: 12px; color: #302237; background: #ffcf79; box-shadow: 0 5px 0 #9b5c46; font: 900 clamp(12px, 2.1vw, 27px) Arial, sans-serif; cursor: pointer; }
+    #menu-action:hover { background: #ffe5a8; }
+    #menu-action:active { transform: translateY(3px); box-shadow: 0 2px 0 #9b5c46; }
+    #menu-action[hidden] { display: none; }
+    #controls { display: flex; width: min(1280px, 100%); align-items: center; justify-content: space-between; gap: 8px; padding: 14px 0 0; }
+    .pad { display: flex; gap: 10px; }
+    button { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .touch { touch-action: none; width: clamp(54px, 9vw, 100px); height: clamp(52px, 7vw, 70px); border: 1px solid #6a5e7c; border-radius: 16px; background: #302c46; color: #ffdfab; font: 900 24px Arial, sans-serif; cursor: pointer; }
+    .touch:active { background: #65506c; }
+    .jump { width: clamp(88px, 15vw, 170px); background: #f4bb77; color: #322637; }
+    .utility { background: transparent; color: #b7b4cb; border: 1px solid #59546c; border-radius: 8px; padding: 10px; cursor: pointer; font-weight: 800; }
+    footer { color: #a5a1b9; text-align: center; font-size: 12px; padding: 14px 0 2px; }
+    :focus-visible { outline: 3px solid #fff1b0; outline-offset: 3px; }
+    @media (max-width: 650px) { body { padding: 6px; } header { font-size: 10px; letter-spacing: 2px; } header span, footer { display: none; } #stage { border-radius: 10px; } .pad { gap: 6px; } .utility { padding: 8px; font-size: 11px; } #controls { flex-wrap: wrap; padding-top: 8px; } }
+    @media (max-height: 520px) and (orientation: landscape) { body { padding: 0; } header, footer { display: none; } #stage { width: min(100vw, calc((100svh - 64px) * 16 / 9)); } #controls { width: min(900px, 100%); padding: 4px 10px; } .touch { height: 52px; } }
   </style>
 </head>
 <body>
-<main>
-  <header class="masthead"><span>MEOW RUN / A CAT ADVENTURE</span><span>ORIGINAL ARCADE · 03 LEVELS</span></header>
-  <div class="stage">
-    <canvas id="game" width="1280" height="720" aria-label="Meow Run platformer. Move with arrows or A D, jump with Space, enter cat flaps with Down."></canvas>
-    <button id="action">LET'S GO →</button>
-  </div>
-  <nav class="controls" aria-label="Game controls">
-    <div class="group"><button data-hold="left" aria-label="Move left">◀</button><button data-hold="right" aria-label="Move right">▶</button><button data-hold="down" aria-label="Enter cat flap">↓</button></div>
-    <span class="hint">A D / ← → MOVE &nbsp; SPACE JUMP &nbsp; ↓ FLAP<br>P PAUSE &nbsp; R RESTART &nbsp; M SOUND</span>
-    <div class="group"><button id="pause" aria-label="Pause">Ⅱ</button><button id="mute" aria-label="Mute sound">♪</button><button class="jump" data-hold="jump">JUMP ↑</button></div>
+  <header>MEOW RUN <span>AN ORIGINAL LITTLE ADVENTURE</span></header>
+  <main id="stage">
+    <canvas id="game" width="1280" height="720" aria-label="Meow Run: guide Milo the orange cat home. Keyboard and touch controls below."></canvas>
+    <button id="menu-action">LET'S GO, MILO! →</button>
+  </main>
+  <nav id="controls" aria-label="Game controls">
+    <div class="pad">
+      <button class="touch" data-action="left" aria-label="Move left">◀</button>
+      <button class="touch" data-action="right" aria-label="Move right">▶</button>
+      <button class="touch" data-action="down" aria-label="Enter cat flap">▼</button>
+    </div>
+    <div class="pad">
+      <button class="utility" id="pause">PAUSE</button>
+      <button class="utility" id="mute" aria-pressed="false">SOUND ON</button>
+      <button class="utility" id="restart">RESTART</button>
+    </div>
+    <button class="touch jump" data-action="jump" aria-label="Jump">JUMP ↑</button>
   </nav>
-</main>
-<script type="module" src="./src/main.js"></script>
+  <footer>MOVE A / D or ← / → &nbsp; · &nbsp; JUMP Space / W / ↑ &nbsp; · &nbsp; FLAP ↓ &nbsp; · &nbsp; PAUSE P &nbsp; · &nbsp; RESTART R &nbsp; · &nbsp; SOUND M</footer>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>

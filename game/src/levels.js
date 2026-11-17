@@ -1,57 +1,79 @@
 export const TILE = 48;
+export const FLOOR = 576;
 
-// Each character is one 48px tile. Objects are laid over the terrain rows.
-// # earth, B breakable cardboard, T cat flap, o fish, S catnip, e mouse,
-// ^ dog, F flag. Level layouts deliberately have generous landing zones.
-const layouts = [
-  { name: 'Alley Dash', width: 100, pits: [[24, 26], [49, 51], [75, 78]],
-    mice: [18, 42, 67, 88], dogs: [35, 60], tube: 12,
-    shelves: [[25, 10, 2], [50, 10, 2], [76, 10, 2]] },
-  { name: 'Garden Prowl', width: 120, pits: [[22, 25], [46, 49], [72, 76], [99, 102]],
-    mice: [16, 38, 64, 90, 110], dogs: [32, 58, 84], tube: 10,
-    shelves: [[23, 10, 2], [47, 10, 2], [73, 10, 2], [100, 10, 2]] },
-  { name: 'Rooftop Night', width: 140, pits: [[23, 27], [48, 52], [74, 78], [101, 105], [122, 126]],
-    mice: [17, 40, 66, 94, 114, 133], dogs: [34, 59, 89], tube: 11,
-    shelves: [[24, 10, 2], [49, 10, 2], [75, 10, 2], [102, 10, 2]] },
+export const layouts = [
+  {
+    name: 'Alley Dash', theme: 'alley', tiles: 100,
+    pits: [[23, 3], [46, 2], [69, 3], [86, 2]],
+    shelves: [[10, 3], [34, 3], [58, 4], [78, 3]],
+    mice: [17, 37, 55, 80], dogs: [30, 63], flap: 42,
+  },
+  {
+    name: 'Garden Prowl', theme: 'garden', tiles: 120,
+    pits: [[22, 3], [45, 4], [68, 3], [91, 4], [108, 2]],
+    shelves: [[9, 4], [33, 3], [57, 4], [80, 3], [100, 3]],
+    mice: [17, 38, 60, 83, 103], dogs: [29, 54, 97], flap: 73,
+  },
+  {
+    name: 'Rooftop Night', theme: 'rooftop', tiles: 140,
+    pits: [[24, 4], [47, 4], [71, 5], [96, 4], [121, 5]],
+    shelves: [[10, 3], [35, 4], [59, 4], [84, 3], [109, 4]],
+    mice: [18, 39, 62, 87, 113, 131], dogs: [32, 80, 105], flap: 54,
+  },
 ];
 
-function mapFor(layout) {
-  const rows = Array.from({ length: 15 }, () => Array(layout.width).fill('.'));
-  for (let x = 0; x < layout.width; x++) {
-    if (!layout.pits.some(([a, b]) => x >= a && x < b)) {
-      rows[12][x] = '#'; rows[13][x] = '#'; rows[14][x] = '#';
+const collectible = (kind, x, y) => ({ kind, x, y, w: 26, h: 26, taken: false });
+
+export function createLevel(index) {
+  const layout = layouts[index];
+  const map = Array.from({ length: 15 }, () => Array(layout.tiles).fill('.'));
+  for (let x = 0; x < layout.tiles; x++) {
+    if (!layout.pits.some(([start, width]) => x >= start && x < start + width)) {
+      for (let y = 12; y < 15; y++) map[y][x] = '#';
     }
   }
-  for (let x = 6; x < layout.width - 4; x += 3) rows[10][x] = 'o';
-  for (const [x, y, count] of layout.shelves) {
-    for (let n = 0; n < count; n++) { rows[y][x + n] = 'B'; rows[y - 1][x + n] = 'o'; }
+  for (const [start, width] of layout.shelves) {
+    for (let x = start; x < start + width; x++) map[9][x] = 'B';
   }
-  rows[9][8] = 'B'; rows[9][9] = 'B';
-  for (const x of layout.mice) rows[11][x] = 'e';
-  for (const x of layout.dogs) rows[11][x] = '^';
-  rows[11][layout.tube] = 'T';
-  rows[11][7] = 'S'; rows[11][layout.width - 4] = 'F';
-  return rows.map(row => row.join(''));
+  const solids = [];
+  map.forEach((row, y) => row.forEach((tile, x) => {
+    if (tile !== '.') solids.push({ x: x * TILE, y: y * TILE, w: TILE, h: TILE, kind: tile === 'B' ? 'box' : 'ground', broken: false });
+  }));
+  const items = [];
+  for (let x = 6; x < layout.tiles - 5; x += 3) {
+    if (!layout.pits.some(([start, width]) => x >= start - 1 && x <= start + width)) {
+      items.push(collectible('fish', x * TILE + 10, FLOOR - 45));
+    }
+  }
+  for (const [start, width] of layout.shelves) {
+    for (let x = start; x < start + width; x++) items.push(collectible('fish', x * TILE + 10, 385));
+  }
+  for (const [start, width] of layout.pits) {
+    for (let x = 0; x < width; x++) items.push(collectible('fish', (start + x) * TILE + 10, 370 - Math.sin(x / width * Math.PI) * 25));
+  }
+  items.push(collectible('catnip', 7 * TILE, FLOOR - 32));
+  items.push(collectible('catnip', (layout.flap + 3) * TILE, FLOOR - 32));
+  const enemies = [];
+  for (const kind of ['mouse', 'dog']) {
+    for (const tile of layout[kind === 'mouse' ? 'mice' : 'dogs']) {
+      enemies.push({ kind, x: tile * TILE, y: FLOOR - (kind === 'mouse' ? 28 : 42),
+        w: kind === 'mouse' ? 36 : 62, h: kind === 'mouse' ? 28 : 42,
+        min: (tile - 1) * TILE, max: (tile + 1) * TILE, direction: -1, alive: true });
+    }
+  }
+  return { ...layout, width: layout.tiles * TILE, map, solids, items, enemies,
+    flap: { x: layout.flap * TILE, y: FLOOR - 12, w: 64, h: 12 },
+    goal: { x: (layout.tiles - 4) * TILE, y: FLOOR - 110, w: 90, h: 110 } };
 }
 
-export const LEVELS = layouts.map(layout => ({ name: layout.name, map: mapFor(layout) }));
-export const BONUS = { name: 'Fish Feast', map: [
-  '........................', '........................', '........................',
-  '........................', '........................', '........................',
-  '........................', '........................', '........................',
-  '.....ooooo...ooooo......', '....BBBBB...BBBBB.......', '...Toooooooooooooooo....',
-  '########################', '########################', '########################',
-] };
-
-export function loadLevel(data) {
-  const tiles = data.map.map(row => [...row]);
-  const entities = [];
-  tiles.forEach((row, y) => row.forEach((type, x) => {
-    if ('oe^SF'.includes(type)) {
-      entities.push({ type, x: x * TILE + 8, y: (y + 1) * TILE - 32,
-        w: 32, h: 32, home: x * TILE + 8, vx: type === 'e' ? -65 : 0, alive: true });
-      row[x] = '.';
-    }
-  }));
-  return { name: data.name, tiles, entities, width: tiles[0].length * TILE };
+export function createBonus() {
+  const solids = [];
+  for (let x = 0; x < 27; x++) solids.push({ x: x * TILE, y: FLOOR, w: TILE, h: 144, kind: 'ground' });
+  for (let x = 8; x < 20; x++) solids.push({ x: x * TILE, y: 432, w: TILE, h: TILE, kind: 'box' });
+  const items = [];
+  for (const y of [530, 385]) {
+    for (let x = 6; x < 24; x++) items.push(collectible('fish', x * TILE, y));
+  }
+  return { name: 'Fish Feast', theme: 'bonus', width: 1296, solids, items, enemies: [],
+    flap: { x: 110, y: FLOOR - 12, w: 64, h: 12 }, goal: null, pits: [] };
 }

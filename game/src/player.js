@@ -1,33 +1,54 @@
-import { GRAVITY, JUMP_SPEED, moveBody, solidAt } from './physics.js';
-export function createPlayer(x = 96, y = 530) {
-  return { x, y, w: 30, h: 38, vx: 0, vy: 0, big: false, grounded: false,
-    coyote: 0, buffer: 0, invincible: 0, facing: 1 };
+import { clamp, moveBody } from './physics.js';
+
+export function createPlayer(x = 120, y = 530) {
+  return { x, y, w: 34, h: 42, vx: 0, vy: 0, big: false, grounded: false,
+    coyote: 0, buffer: 0, invincible: 0, facing: 1, previousBottom: y + 42 };
 }
-export function grow(player, world) {
+
+export function grow(player, solids = []) {
   if (player.big) return;
-  // Keep feet planted. Defer growth beneath a low ceiling until space opens.
-  if (solidAt(world, player.x + 2, player.y - 20) || solidAt(world, player.x + player.w - 2, player.y - 20)) {
-    player.pendingGrowth = true; return;
+  // Keep feet planted; growth cannot embed Milo in a shelf.
+  const top = player.y - 20;
+  if (solids.some(b => !b.broken && player.x < b.x + b.w && player.x + player.w > b.x && top < b.y + b.h && player.y + player.h > b.y)) {
+    player.big = true;
+    return;
   }
-  player.big = true; player.y -= 20; player.h = 58; player.pendingGrowth = false;
+  player.y = top;
+  player.h = 62;
+  player.big = true;
 }
+
 export function shrink(player) {
-  player.big = false; player.y += player.h - 38; player.h = 38; player.invincible = 1.6;
+  player.y += player.h - 42;
+  player.h = 42;
+  player.big = false;
+  player.invincible = 1.6;
 }
-export function updatePlayer(player, world, input, dt, emit) {
-  if (player.pendingGrowth) grow(player, world);
+
+export function breakCardboard(player, block) {
+  if (!player.big || block.kind !== 'box') return false;
+  block.broken = true;
+  return true;
+}
+
+export function updatePlayer(player, input, world, dt, emit) {
+  player.previousBottom = player.y + player.h;
   player.invincible = Math.max(0, player.invincible - dt);
-  player.coyote = player.grounded ? .1 : Math.max(0, player.coyote - dt);
-  player.buffer = input.jumpPressed ? .1 : Math.max(0, player.buffer - dt);
-  const direction = Number(!!input.right) - Number(!!input.left);
-  player.vx += (direction * 300 - player.vx) * Math.min(1, dt * (player.grounded ? 18 : 10));
-  if (direction) player.facing = direction;
+  player.coyote = player.grounded ? 0.1 : Math.max(0, player.coyote - dt);
+  player.buffer = input.jumpPressed ? 0.1 : Math.max(0, player.buffer - dt);
+  player.vx = input.move * 340;
+  if (input.move) player.facing = input.move;
   if (player.buffer > 0 && player.coyote > 0) {
-    player.vy = -JUMP_SPEED; player.buffer = 0; player.coyote = 0; player.grounded = false; emit('jump');
+    player.vy = -790;
+    player.buffer = 0;
+    player.coyote = 0;
+    player.grounded = false;
+    emit('jump');
   }
-  if (!input.jump && player.vy < -260) player.vy = -260;
-  player.vy = Math.min(1000, player.vy + GRAVITY * dt);
-  moveBody(player, world, dt, (x, y) => {
-    if (player.big && world.tiles[y][x] === 'B') { world.tiles[y][x] = '.'; emit('break'); }
+  if (!input.jump && player.vy < -280) player.vy = -280;
+  player.vy = Math.min(1000, player.vy + 1850 * dt);
+  moveBody(player, world.solids, dt, block => {
+    if (breakCardboard(player, block)) emit('box', block);
   });
+  player.x = clamp(player.x, 0, world.width - player.w);
 }
